@@ -1,0 +1,405 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Comissão eleitoral</title>
+<style>
+  :root {
+    --fundo: #f3f5f8; --cartao: #ffffff; --texto: #17202b; --suave: #5b6675;
+    --borda: #d6dce4; --primaria: #00629b; --primaria-texto: #ffffff; --trilho: #e7ebf0;
+    --erro: #b42318; --erro-fundo: #fdecea; --ok: #157347; --ok-fundo: #e5f4ec;
+    --alerta: #8a5a00; --alerta-fundo: #fff4d6;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --fundo: #0f1419; --cartao: #1a2129; --texto: #e8edf2; --suave: #9aa6b4;
+      --borda: #2f3a46; --primaria: #4aa8e0; --primaria-texto: #08131c; --trilho: #26313c;
+      --erro: #ff8a80; --erro-fundo: #3a1c1a; --ok: #5fd39a; --ok-fundo: #15301f;
+      --alerta: #f3c56b; --alerta-fundo: #36290d;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--fundo); color: var(--texto);
+         font: 16px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  main { max-width: 900px; margin: 0 auto; padding: 20px 16px 60px; }
+  h1 { font-size: 1.5rem; margin: 0; }
+  h2 { font-size: 1.1rem; margin: 0 0 12px; }
+  h3 { font-size: 1rem; margin: 0 0 6px; }
+  p { margin: 0 0 10px; }
+  .suave { color: var(--suave); }
+  .topo { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+  .cartao { background: var(--cartao); border: 1px solid var(--borda); border-radius: 14px; padding: 18px; margin: 16px 0; }
+  .selo { display: inline-block; padding: 4px 12px; border-radius: 999px; font-weight: 700; font-size: .9rem; }
+  .selo.preparacao { background: var(--alerta-fundo); color: var(--alerta); }
+  .selo.aberta { background: var(--ok-fundo); color: var(--ok); }
+  .selo.encerrada { background: var(--trilho); color: var(--texto); }
+  .numeros { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
+  .numero { background: var(--fundo); border-radius: 10px; padding: 12px; }
+  .numero b { display: block; font-size: 1.9rem; font-variant-numeric: tabular-nums; }
+  button, .botao-link { font: inherit; font-weight: 600; border-radius: 10px; padding: 10px 16px; cursor: pointer;
+           border: 2px solid var(--primaria); background: var(--primaria); color: var(--primaria-texto);
+           text-decoration: none; display: inline-block; }
+  button.secundario, .botao-link.secundario { background: transparent; color: var(--primaria); }
+  button.perigo { background: #b42318; border-color: #b42318; color: #fff; }
+  button:disabled { opacity: .45; cursor: not-allowed; }
+  input { font: inherit; padding: 9px 12px; border-radius: 10px; border: 2px solid var(--borda);
+          background: var(--fundo); color: var(--texto); max-width: 100%; }
+  .linha { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+  .mensagem { padding: 10px 12px; border-radius: 10px; margin: 10px 0 0; font-weight: 600; }
+  .mensagem.erro { background: var(--erro-fundo); color: var(--erro); }
+  .mensagem.alerta { background: var(--alerta-fundo); color: var(--alerta); }
+  .mensagem.ok { background: var(--ok-fundo); color: var(--ok); }
+  .oculto { display: none !important; }
+  ul.cargos { list-style: none; padding: 0; margin: 0; }
+  ul.cargos li { padding: 10px 0; border-bottom: 1px solid var(--borda); display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+  ul.cargos li:last-child { border-bottom: 0; }
+  .tipo { font-size: .8rem; color: var(--suave); }
+  .resultado { padding: 14px 0; border-bottom: 1px solid var(--borda); break-inside: avoid; }
+  .resultado:last-child { border-bottom: 0; }
+  .barra-linha { display: grid; grid-template-columns: minmax(110px, 38%) 1fr 92px; gap: 10px; align-items: center; margin: 6px 0; }
+  .trilho { height: 14px; background: var(--trilho); border-radius: 7px; overflow: hidden; }
+  .preenchido { height: 100%; background: var(--primaria); border-radius: 7px; }
+  .valor { text-align: right; font-variant-numeric: tabular-nums; }
+  details summary { cursor: pointer; font-weight: 600; color: var(--erro); }
+  #impressao { display: none; }
+
+  @media (max-width: 520px) {
+    .barra-linha { grid-template-columns: 1fr 80px; }
+    .barra-linha .trilho { grid-column: 1 / -1; grid-row: 2; }
+  }
+  @media print {
+    body { background: #fff; color: #000; }
+    .nao-imprimir { display: none !important; }
+    #impressao.ativo { display: block; }
+    #impressao.ativo ~ main { display: none; }
+    .cartao { border: 0; padding: 0; }
+    .preenchido { background: #000 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .trilho { background: #ddd !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  }
+  /* Folha de códigos */
+  .folha { display: grid; grid-template-columns: repeat(3, 1fr); }
+  .papel { border: 1px dashed #888; padding: 10px 8px; text-align: center; break-inside: avoid; color: #000; }
+  .papel .t { font-size: 10px; font-weight: 700; }
+  .papel .c { font: 700 20px/1.3 ui-monospace, Consolas, monospace; letter-spacing: .08em; margin: 4px 0; }
+  .papel .u { font-size: 10px; }
+  .papel .i { font-size: 8.5px; color: #333; }
+</style>
+</head>
+<body>
+<div id="impressao"></div>
+<main>
+  <!-- Login -->
+  <section id="login" class="oculto">
+    <h1>Comissão eleitoral</h1>
+    <form id="form-login" class="cartao" style="max-width:420px">
+      <label for="senha" style="display:block;font-weight:600;margin-bottom:8px">Senha</label>
+      <div class="linha">
+        <input id="senha" type="password" autocomplete="current-password" required style="flex:1">
+        <button type="submit">Entrar</button>
+      </div>
+      <div id="msg-login"></div>
+    </form>
+  </section>
+
+  <!-- Painel -->
+  <section id="painel" class="oculto">
+    <div class="topo">
+      <div>
+        <h1 id="titulo">Comissão eleitoral</h1>
+        <span class="selo" id="selo"></span>
+      </div>
+      <button class="secundario nao-imprimir" id="btn-sair">Sair</button>
+    </div>
+    <div id="msg-geral"></div>
+
+    <div class="cartao">
+      <h2>Situação</h2>
+      <div class="numeros">
+        <div class="numero"><span class="suave">Códigos gerados</span><b id="n-total">0</b></div>
+        <div class="numero"><span class="suave">Já votaram</span><b id="n-usados">0</b></div>
+        <div class="numero"><span class="suave">Códigos não usados</span><b id="n-restantes">0</b></div>
+      </div>
+      <p class="suave" style="margin:12px 0 0">Endereço para os eleitores: <b id="endereco"></b></p>
+    </div>
+
+    <!-- Resultado -->
+    <div class="cartao oculto" id="cartao-resultado">
+      <div class="topo">
+        <h2 style="margin:0">Resultado</h2>
+        <div class="linha nao-imprimir">
+          <a class="botao-link secundario" href="/api/admin/resultado.csv">Baixar planilha (CSV)</a>
+          <button class="secundario" id="btn-imprimir-resultado">Imprimir</button>
+        </div>
+      </div>
+      <div id="conferencia"></div>
+      <div id="resultados"></div>
+    </div>
+
+    <!-- Ações -->
+    <div class="cartao nao-imprimir" id="cartao-acoes">
+      <h2>Andamento</h2>
+      <div id="acoes-preparacao">
+        <p>Confira a cédula abaixo, gere os códigos e imprima. Quando tudo estiver pronto, abra a votação.
+           <b>Depois de aberta, a cédula não pode mais ser alterada.</b></p>
+        <button id="btn-abrir">Abrir votação</button>
+      </div>
+      <div id="acoes-aberta">
+        <p>A votação está aberta. Quando todos tiverem votado, encerre para ver o resultado.
+           <b>Depois de encerrada não é possível reabrir.</b></p>
+        <button class="perigo" id="btn-encerrar">Encerrar votação</button>
+      </div>
+      <div id="acoes-encerrada"><p>Votação encerrada. O resultado está acima.</p></div>
+    </div>
+
+    <!-- Códigos -->
+    <div class="cartao nao-imprimir" id="cartao-codigos">
+      <h2>Códigos de votação</h2>
+      <p class="suave">Gere um código por eleitor (e alguns de reserva). Na hora de votar, cada pessoa sorteia um papel,
+         assim ninguém sabe qual código ficou com quem.</p>
+      <div class="linha">
+        <input id="qtd" type="number" min="1" max="2000" value="50" style="width:110px" aria-label="Quantidade">
+        <button id="btn-gerar">Gerar códigos</button>
+        <button class="secundario" id="btn-imprimir-codigos">Imprimir códigos não usados</button>
+      </div>
+      <div id="msg-codigos"></div>
+    </div>
+
+    <!-- Cédula -->
+    <div class="cartao" id="cartao-cedula">
+      <div class="topo">
+        <h2 style="margin:0">Cédula</h2>
+        <button class="secundario nao-imprimir" id="btn-recarregar">Recarregar eleicao.json</button>
+      </div>
+      <p class="suave" id="dica-cedula" style="margin-top:8px">Para mudar cargos e candidatos, edite o arquivo
+         <code>eleicao.json</code> e clique em “Recarregar”. Cargo com 1 candidato vira votação Sim/Não.</p>
+      <div id="cedula"></div>
+    </div>
+
+    <!-- Zerar -->
+    <details class="cartao nao-imprimir">
+      <summary>Zerar tudo (apagar códigos e votos)</summary>
+      <p style="margin-top:12px">Use depois de uma votação de teste. Apaga todos os códigos e todos os votos e volta para a preparação.
+         <b>Não tem como desfazer.</b></p>
+      <div class="linha">
+        <input id="zerar-senha" type="password" placeholder="Senha da comissão" autocomplete="current-password">
+        <input id="zerar-conf" placeholder='Digite ZERAR'>
+        <button class="perigo" id="btn-zerar">Zerar</button>
+      </div>
+      <div id="msg-zerar"></div>
+    </details>
+  </section>
+</main>
+
+<script>
+(() => {
+  const $ = (s) => document.querySelector(s);
+  const el = (tag, props = {}, ...filhos) => {
+    const e = Object.assign(document.createElement(tag), props);
+    e.append(...filhos);
+    return e;
+  };
+  const NOMES_FASE = { preparacao: "Em preparação", aberta: "Votação aberta", encerrada: "Votação encerrada" };
+  let estado = null, timer = null, ultimaCedula = "";
+
+  function msg(alvo, texto, tipo = "erro") {
+    const c = $(alvo);
+    c.innerHTML = "";
+    if (texto) c.append(el("div", { className: "mensagem " + tipo, textContent: texto }));
+  }
+
+  async function api(caminho, dados) {
+    const op = dados ? { method: "POST", headers: { "Content-Type": "application/json" },
+                         body: JSON.stringify(dados) } : {};
+    let r;
+    try { r = await fetch(caminho, op); }
+    catch { throw new Error("Sem conexão com o servidor."); }
+    const j = await r.json().catch(() => ({}));
+    if (r.status === 401) { mostrarLogin(); throw new Error(j.erro || "Faça login."); }
+    if (!r.ok) throw new Error(j.erro || "Erro inesperado.");
+    return j;
+  }
+
+  function mostrarLogin() {
+    clearTimeout(timer);
+    $("#painel").classList.add("oculto");
+    $("#login").classList.remove("oculto");
+    $("#senha").focus();
+  }
+
+  $("#form-login").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    try {
+      await api("/api/admin/login", { senha: $("#senha").value });
+      $("#senha").value = "";
+      msg("#msg-login", "");
+      atualizar();
+    } catch (err) { msg("#msg-login", err.message); }
+  });
+
+  $("#btn-sair").addEventListener("click", async () => {
+    await api("/api/admin/sair", {}).catch(() => {});
+    mostrarLogin();
+  });
+
+  async function atualizar() {
+    clearTimeout(timer);
+    try {
+      estado = await api("/api/admin/status");
+      $("#login").classList.add("oculto");
+      $("#painel").classList.remove("oculto");
+      desenhar();
+      msg("#msg-geral", "");
+    } catch (err) {
+      if (!$("#login").classList.contains("oculto")) return;
+      msg("#msg-geral", err.message);
+    }
+    timer = setTimeout(atualizar, 4000);
+  }
+
+  function desenhar() {
+    const s = estado, f = s.fase;
+    $("#titulo").textContent = s.cedula ? s.cedula.titulo : "Comissão eleitoral";
+    $("#selo").textContent = NOMES_FASE[f];
+    $("#selo").className = "selo " + f;
+    $("#n-total").textContent = s.codigos_total;
+    $("#n-usados").textContent = s.codigos_usados;
+    $("#n-restantes").textContent = s.codigos_total - s.codigos_usados;
+    $("#endereco").textContent = "http://" + location.host;
+
+    ["preparacao", "aberta", "encerrada"].forEach((x) =>
+      $("#acoes-" + x).classList.toggle("oculto", x !== f));
+    $("#btn-gerar").disabled = f === "encerrada";
+    $("#btn-recarregar").classList.toggle("oculto", f !== "preparacao");
+    $("#dica-cedula").textContent = f === "preparacao"
+      ? "Para mudar cargos e candidatos, edite o arquivo eleicao.json e clique em “Recarregar”. Cargo com 1 candidato vira votação Sim/Não."
+      : "A cédula foi congelada quando a votação abriu.";
+
+    // Cédula (só redesenha quando muda)
+    const chave = JSON.stringify([s.cedula, s.erro_cedula]);
+    if (chave !== ultimaCedula) {
+      ultimaCedula = chave;
+      const box = $("#cedula");
+      box.innerHTML = "";
+      if (s.erro_cedula) {
+        box.append(el("div", { className: "mensagem erro", textContent: "Problema no eleicao.json: " + s.erro_cedula }));
+      } else {
+        const ul = el("ul", { className: "cargos" });
+        s.cedula.cargos.forEach((c) => {
+          const tipo = c.tipo === "referendo" ? "Sim / Não / Branco" : `${c.candidatos.length} candidatos + Branco`;
+          ul.append(el("li", {}, el("div", {}, el("b", { textContent: c.cargo }), el("div", { className: "tipo", textContent: tipo })),
+                                  el("div", { textContent: c.candidatos.join(", ") })));
+        });
+        box.append(ul);
+        if (s.cedula.sem_candidatos.length)
+          box.append(el("div", { className: "mensagem alerta",
+            textContent: "Sem candidatos (não aparecem na cédula): " + s.cedula.sem_candidatos.join(", ") }));
+      }
+    }
+
+    // Resultado
+    const temRes = f === "encerrada" && s.resultados;
+    $("#cartao-resultado").classList.toggle("oculto", !temRes);
+    if (temRes) desenharResultado();
+  }
+
+  function desenharResultado() {
+    const box = $("#resultados");
+    box.innerHTML = "";
+    let tudoCerto = true;
+    estado.resultados.forEach((r) => {
+      if (r.soma !== estado.codigos_usados) tudoCerto = false;
+      const max = Math.max(...r.resultado.map((o) => o.total));
+      const bloco = el("div", { className: "resultado" },
+        el("h3", { textContent: r.tipo === "referendo" ? `${r.cargo} — ${r.candidatos[0]}` : r.cargo }));
+      r.resultado.forEach((o) => {
+        const pct = r.soma ? (100 * o.total) / r.soma : 0;
+        const nome = el("div", { textContent: o.opcao });
+        if (o.total === max && max > 0) nome.style.fontWeight = "700";
+        bloco.append(el("div", { className: "barra-linha" }, nome,
+          el("div", { className: "trilho" }, el("div", { className: "preenchido", style: `width:${pct}%` })),
+          el("div", { className: "valor", textContent: `${o.total} (${pct.toFixed(1).replace(".", ",")}%)` })));
+      });
+      box.append(bloco);
+    });
+    msg("#conferencia", tudoCerto
+      ? `Conferência OK: ${estado.codigos_usados} eleitores votaram e todos os cargos somam ${estado.codigos_usados} votos.`
+      : "Atenção: a soma de votos de algum cargo não bate com o número de eleitores.", tudoCerto ? "ok" : "erro");
+  }
+
+  async function acao(caminho, dados, alvo = "#msg-geral") {
+    try { await api(caminho, dados); msg(alvo, ""); await atualizar(); return true; }
+    catch (err) { msg(alvo, err.message); return false; }
+  }
+
+  $("#btn-recarregar").addEventListener("click", () => { ultimaCedula = ""; atualizar(); });
+
+  $("#btn-abrir").addEventListener("click", () => {
+    if (confirm("Abrir a votação? A cédula fica congelada e os eleitores já podem votar.")) acao("/api/admin/abrir", {});
+  });
+  $("#btn-encerrar").addEventListener("click", () => {
+    const faltam = estado.codigos_total - estado.codigos_usados;
+    if (confirm(`Encerrar a votação? ${estado.codigos_usados} pessoas votaram e ${faltam} códigos não foram usados.\n\nNão será possível reabrir.`))
+      acao("/api/admin/encerrar", {});
+  });
+
+  $("#btn-gerar").addEventListener("click", async () => {
+    const qtd = parseInt($("#qtd").value, 10);
+    try {
+      const r = await api("/api/admin/gerar", { quantidade: qtd });
+      msg("#msg-codigos", `${r.codigos.length} códigos gerados. Clique em “Imprimir códigos não usados”.`, "ok");
+      atualizar();
+    } catch (err) { msg("#msg-codigos", err.message); }
+  });
+
+  $("#btn-imprimir-codigos").addEventListener("click", async () => {
+    try {
+      const { codigos } = await api("/api/admin/codigos");
+      if (!codigos.length) return msg("#msg-codigos", "Não há códigos para imprimir. Gere primeiro.");
+      const titulo = estado.cedula ? estado.cedula.titulo : "Eleição";
+      const folha = el("div", { className: "folha" });
+      codigos.forEach((c) => folha.append(el("div", { className: "papel" },
+        el("div", { className: "t", textContent: titulo }),
+        el("div", { className: "c", textContent: c }),
+        el("div", { className: "u", textContent: "Wi-Fi da votação → http://" + location.host }),
+        el("div", { className: "i", textContent: "Uso único. Não mostre seu código a ninguém." }))));
+      imprimir(folha);
+    } catch (err) { msg("#msg-codigos", err.message); }
+  });
+
+  $("#btn-imprimir-resultado").addEventListener("click", () => {
+    const copia = $("#cartao-resultado").cloneNode(true);
+    copia.querySelectorAll(".nao-imprimir").forEach((n) => n.remove());
+    const quando = new Date().toLocaleString("pt-BR");
+    imprimir(el("div", {},
+      el("h1", { textContent: $("#titulo").textContent }),
+      el("p", { textContent: `Emitido em ${quando} · ${estado.codigos_usados} eleitores votaram · ${estado.codigos_total} códigos gerados` }),
+      copia,
+      el("p", { style: "margin-top:40px", textContent: "Assinaturas da comissão eleitoral: ______________________   ______________________   ______________________" })));
+  });
+
+  function imprimir(conteudo) {
+    const area = $("#impressao");
+    area.innerHTML = "";
+    area.append(conteudo);
+    area.classList.add("ativo");
+    window.print();
+    area.classList.remove("ativo");
+    area.innerHTML = "";
+  }
+
+  $("#btn-zerar").addEventListener("click", async () => {
+    if (!confirm("Apagar TODOS os códigos e votos? Não tem como desfazer.")) return;
+    const ok = await acao("/api/admin/zerar",
+      { senha: $("#zerar-senha").value, confirmacao: $("#zerar-conf").value.trim() }, "#msg-zerar");
+    if (ok) {
+      $("#zerar-senha").value = ""; $("#zerar-conf").value = "";
+      msg("#msg-geral", "Tudo zerado. A votação voltou para a preparação.", "ok");
+    }
+  });
+
+  atualizar();
+})();
+</script>
+</body>
+</html>

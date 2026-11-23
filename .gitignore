@@ -1,0 +1,8 @@
+# Banco de dados: guarda a senha da comissão, os códigos e a contagem. Nunca enviar.
+votacao.db
+votacao.db-journal
+*.db
+
+__pycache__/
+*.pyc
+resultado.csv

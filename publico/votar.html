@@ -1,0 +1,287 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Votação</title>
+<style>
+  :root {
+    --fundo: #f3f5f8; --cartao: #ffffff; --texto: #17202b; --suave: #5b6675;
+    --borda: #d6dce4; --primaria: #00629b; --primaria-texto: #ffffff;
+    --sel-fundo: #e6f1f8; --erro: #b42318; --erro-fundo: #fdecea; --ok: #157347;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --fundo: #0f1419; --cartao: #1a2129; --texto: #e8edf2; --suave: #9aa6b4;
+      --borda: #2f3a46; --primaria: #4aa8e0; --primaria-texto: #08131c;
+      --sel-fundo: #16314a; --erro: #ff8a80; --erro-fundo: #3a1c1a; --ok: #5fd39a;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--fundo); color: var(--texto);
+         font: 17px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  main { max-width: 560px; margin: 0 auto; padding: 20px 16px 120px; }
+  h1 { font-size: 1.45rem; margin: 8px 0 4px; }
+  h2 { font-size: 1.15rem; margin: 0 0 4px; }
+  p { margin: 0 0 12px; }
+  .suave { color: var(--suave); }
+  .tela { display: none; }
+  .tela.ativa { display: block; }
+  .cartao { background: var(--cartao); border: 1px solid var(--borda); border-radius: 14px;
+            padding: 18px 16px; margin: 14px 0; }
+  label.campo { display: block; font-weight: 600; margin-bottom: 8px; }
+  input[type=text] { width: 100%; font: 600 1.6rem/1 ui-monospace, "Cascadia Mono", Consolas, monospace;
+         letter-spacing: .12em; text-align: center; padding: 14px; border-radius: 10px;
+         border: 2px solid var(--borda); background: var(--fundo); color: var(--texto); }
+  input[type=text]:focus { outline: none; border-color: var(--primaria); }
+  button { font: inherit; font-weight: 600; border-radius: 12px; padding: 14px 18px; cursor: pointer;
+           border: 2px solid var(--primaria); width: 100%; }
+  .botao { background: var(--primaria); color: var(--primaria-texto); }
+  .botao:disabled { opacity: .45; cursor: not-allowed; }
+  .secundario { background: transparent; color: var(--primaria); }
+  .mensagem { display: none; margin-top: 12px; padding: 10px 12px; border-radius: 10px;
+              background: var(--erro-fundo); color: var(--erro); font-weight: 600; }
+  .mensagem.visivel { display: block; }
+  fieldset { border: 0; padding: 0; margin: 0; }
+  legend { padding: 0; }
+  .candidato { margin: 2px 0 10px; color: var(--suave); }
+  .candidato strong { color: var(--texto); }
+  .opcao { display: flex; align-items: center; gap: 12px; padding: 13px 14px; margin-top: 8px;
+           border: 2px solid var(--borda); border-radius: 12px; cursor: pointer; }
+  .opcao input { width: 22px; height: 22px; accent-color: var(--primaria); margin: 0; flex: none; }
+  .opcao:has(input:checked) { border-color: var(--primaria); background: var(--sel-fundo); }
+  .opcao.branco { border-style: dashed; }
+  .barra { position: fixed; left: 0; right: 0; bottom: 0; background: var(--cartao);
+           border-top: 1px solid var(--borda); padding: 12px 16px calc(12px + env(safe-area-inset-bottom)); }
+  .barra div { max-width: 560px; margin: 0 auto; }
+  .progresso { text-align: center; font-size: .9rem; color: var(--suave); margin-bottom: 8px; }
+  .revisao { list-style: none; padding: 0; margin: 0; }
+  .revisao li { padding: 12px 0; border-bottom: 1px solid var(--borda); }
+  .revisao li:last-child { border-bottom: 0; }
+  .revisao .cargo { font-size: .85rem; color: var(--suave); }
+  .revisao .escolha { font-weight: 700; font-size: 1.1rem; }
+  .pilha { display: grid; gap: 10px; margin-top: 18px; }
+  .centro { text-align: center; }
+  .icone { font-size: 64px; line-height: 1; color: var(--ok); margin: 30px 0 10px; }
+</style>
+</head>
+<body>
+<main>
+  <section id="tela-carregando" class="tela ativa"><p class="suave centro" style="margin-top:40px">Carregando…</p></section>
+
+  <section id="tela-fechada" class="tela">
+    <h1 id="fechada-titulo">Votação fechada</h1>
+    <div class="cartao"><p id="fechada-texto" style="margin:0"></p></div>
+    <p class="suave">Esta página atualiza sozinha.</p>
+  </section>
+
+  <section id="tela-codigo" class="tela">
+    <h1 class="titulo-eleicao"></h1>
+    <p class="suave">Digite o código que você recebeu da comissão eleitoral. Ele só pode ser usado uma vez.</p>
+    <form id="form-codigo" class="cartao" autocomplete="off">
+      <label class="campo" for="codigo">Código de votação</label>
+      <input id="codigo" type="text" inputmode="text" autocapitalize="characters" autocorrect="off"
+             spellcheck="false" placeholder="XXXX-XXXX" maxlength="9" required>
+      <div id="msg-codigo" class="mensagem" role="alert"></div>
+      <div class="pilha"><button class="botao" type="submit">Continuar</button></div>
+    </form>
+  </section>
+
+  <section id="tela-cedula" class="tela">
+    <h1 class="titulo-eleicao"></h1>
+    <p class="suave">Escolha uma opção em cada cargo. Você vai poder revisar antes de confirmar.</p>
+    <form id="cedula"></form>
+    <div class="barra"><div>
+      <div class="progresso" id="progresso"></div>
+      <button class="botao" id="btn-revisar" type="button" disabled>Revisar voto</button>
+    </div></div>
+  </section>
+
+  <section id="tela-revisao" class="tela">
+    <h1>Confira seu voto</h1>
+    <p class="suave">Depois de confirmar não é possível alterar.</p>
+    <div class="cartao"><ul class="revisao" id="lista-revisao"></ul></div>
+    <div id="msg-voto" class="mensagem" role="alert"></div>
+    <div class="pilha">
+      <button class="botao" id="btn-confirmar" type="button">Confirmar voto</button>
+      <button class="secundario" id="btn-voltar" type="button">Voltar e corrigir</button>
+    </div>
+  </section>
+
+  <section id="tela-fim" class="tela centro">
+    <div class="icone" aria-hidden="true">✓</div>
+    <h1>Voto registrado</h1>
+    <p class="suave">Obrigado por votar! Pode jogar fora o papel com o código.</p>
+    <div class="pilha"><button class="secundario" id="btn-concluir" type="button">Concluir</button></div>
+  </section>
+</main>
+
+<script>
+(() => {
+  const $ = (s) => document.querySelector(s);
+  let cedula = null, codigo = "", timerFim = null, timerFechada = null;
+
+  function mostrar(id) {
+    document.querySelectorAll(".tela").forEach((t) => t.classList.toggle("ativa", t.id === id));
+    window.scrollTo(0, 0);
+  }
+  function aviso(el, texto) { el.textContent = texto || ""; el.classList.toggle("visivel", !!texto); }
+
+  async function api(caminho, dados) {
+    const op = dados ? { method: "POST", headers: { "Content-Type": "application/json" },
+                         body: JSON.stringify(dados) } : {};
+    let r;
+    try { r = await fetch(caminho, op); }
+    catch { throw new Error("Sem conexão com o servidor. Confira se está no Wi-Fi da votação."); }
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(j.erro || "Erro inesperado.");
+    return j;
+  }
+
+  async function carregar() {
+    clearTimeout(timerFechada);
+    try {
+      const c = await api("/api/cedula");
+      if (c.fase !== "aberta") return fechada(c.fase);
+      cedula = c;
+      document.querySelectorAll(".titulo-eleicao").forEach((h) => (h.textContent = c.titulo));
+      document.title = c.titulo;
+      inicio();
+    } catch (e) { fechada(null, e.message); }
+  }
+
+  function fechada(fase, erro) {
+    const textos = {
+      preparacao: ["Votação ainda não começou", "Aguarde a comissão eleitoral abrir a votação."],
+      encerrada: ["Votação encerrada", "A votação já foi encerrada. Obrigado!"],
+    };
+    const [t, p] = erro ? ["Sem conexão", erro] : textos[fase] || ["Votação fechada", ""];
+    $("#fechada-titulo").textContent = t;
+    $("#fechada-texto").textContent = p;
+    mostrar("tela-fechada");
+    timerFechada = setTimeout(carregar, 8000);
+  }
+
+  function inicio() {
+    codigo = "";
+    $("#codigo").value = "";
+    $("#cedula").innerHTML = "";
+    aviso($("#msg-codigo"));
+    aviso($("#msg-voto"));
+    mostrar("tela-codigo");
+  }
+
+  // Formata o código enquanto a pessoa digita: ABCD-EFGH
+  $("#codigo").addEventListener("input", (e) => {
+    const limpo = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 8);
+    e.target.value = limpo.length > 4 ? limpo.slice(0, 4) + "-" + limpo.slice(4) : limpo;
+  });
+
+  $("#form-codigo").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const btn = e.submitter || e.target.querySelector("button");
+    const valor = $("#codigo").value.replace(/[^A-Z0-9]/g, "");
+    if (valor.length !== 8) return aviso($("#msg-codigo"), "O código tem 8 letras/números.");
+    btn.disabled = true;
+    try {
+      await api("/api/validar", { codigo: valor });
+      codigo = valor;
+      montarCedula();
+      mostrar("tela-cedula");
+    } catch (err) {
+      aviso($("#msg-codigo"), err.message);
+      if (/não está aberta/.test(err.message)) carregar();
+    } finally { btn.disabled = false; }
+  });
+
+  function montarCedula() {
+    const form = $("#cedula");
+    form.innerHTML = "";
+    cedula.cargos.forEach((cargo, i) => {
+      const fs = document.createElement("fieldset");
+      fs.className = "cartao";
+      const lg = document.createElement("legend");
+      const h = document.createElement("h2");
+      h.textContent = cargo.cargo;
+      lg.appendChild(h);
+      fs.appendChild(lg);
+      if (cargo.tipo === "referendo") {
+        const p = document.createElement("p");
+        p.className = "candidato";
+        p.append("Candidato(a): ");
+        const s = document.createElement("strong");
+        s.textContent = cargo.candidatos[0];
+        p.append(s, document.createElement("br"), "Você aprova?");
+        fs.appendChild(p);
+      }
+      cargo.opcoes.forEach((op, j) => {
+        const l = document.createElement("label");
+        l.className = "opcao" + (j === cargo.opcoes.length - 1 ? " branco" : "");
+        const inp = document.createElement("input");
+        inp.type = "radio"; inp.name = "c" + i; inp.value = j;
+        const span = document.createElement("span");
+        span.textContent = op;
+        l.append(inp, span);
+        fs.appendChild(l);
+      });
+      form.appendChild(fs);
+    });
+    atualizarProgresso();
+  }
+
+  function escolhas() {
+    return cedula.cargos.map((cargo, i) => {
+      const m = document.querySelector(`input[name="c${i}"]:checked`);
+      return m ? cargo.opcoes[+m.value] : null;
+    });
+  }
+
+  function atualizarProgresso() {
+    const feitas = escolhas().filter((x) => x !== null).length, total = cedula.cargos.length;
+    $("#progresso").textContent = `${feitas} de ${total} cargos respondidos`;
+    $("#btn-revisar").disabled = feitas !== total;
+  }
+  $("#cedula").addEventListener("change", atualizarProgresso);
+
+  $("#btn-revisar").addEventListener("click", () => {
+    const lista = $("#lista-revisao");
+    lista.innerHTML = "";
+    const esc = escolhas();
+    cedula.cargos.forEach((cargo, i) => {
+      const li = document.createElement("li");
+      const a = document.createElement("div"); a.className = "cargo";
+      a.textContent = cargo.tipo === "referendo" ? `${cargo.cargo} — ${cargo.candidatos[0]}` : cargo.cargo;
+      const b = document.createElement("div"); b.className = "escolha"; b.textContent = esc[i];
+      li.append(a, b);
+      lista.appendChild(li);
+    });
+    aviso($("#msg-voto"));
+    mostrar("tela-revisao");
+  });
+
+  $("#btn-voltar").addEventListener("click", () => mostrar("tela-cedula"));
+
+  $("#btn-confirmar").addEventListener("click", async (e) => {
+    const btn = e.currentTarget;
+    btn.disabled = true;
+    const esc = escolhas(), votos = {};
+    cedula.cargos.forEach((c, i) => (votos[c.cargo] = esc[i]));
+    try {
+      await api("/api/votar", { codigo, votos });
+      codigo = "";
+      $("#cedula").innerHTML = "";
+      $("#lista-revisao").innerHTML = "";
+      mostrar("tela-fim");
+      timerFim = setTimeout(inicio, 20000);
+    } catch (err) {
+      aviso($("#msg-voto"), err.message);
+    } finally { btn.disabled = false; }
+  });
+
+  $("#btn-concluir").addEventListener("click", () => { clearTimeout(timerFim); inicio(); });
+
+  carregar();
+})();
+</script>
+</body>
+</html>

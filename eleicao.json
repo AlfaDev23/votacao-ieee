@@ -1,0 +1,14 @@
+{
+  "titulo": "Eleição da Diretoria",
+  "cargos": [
+    { "cargo": "Presidente",             "candidatos": ["Nome do Candidato A", "Nome do Candidato B"] },
+    { "cargo": "Vice-Presidente",        "candidatos": ["Nome do Candidato"] },
+    { "cargo": "Secretário",             "candidatos": ["Nome do Candidato"] },
+    { "cargo": "Diretor de RH",          "candidatos": ["Nome do Candidato"] },
+    { "cargo": "Diretor de Projetos",    "candidatos": ["Nome do Candidato"] },
+    { "cargo": "Diretor de Eventos",     "candidatos": ["Nome do Candidato"] },
+    { "cargo": "Assessor de Concursos",  "candidatos": ["Nome do Candidato"] },
+    { "cargo": "Diretor de Marketing",   "candidatos": ["Nome do Candidato"] },
+    { "cargo": "Tesoureiro",             "candidatos": ["Nome do Candidato"] }
+  ]
+}
